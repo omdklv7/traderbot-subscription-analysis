@@ -33,3 +33,27 @@
 ## Статус
 
 Проект находится в разработке.
+
+
+## Примерная структура проекта
+
+TraderBot-Subscription-Analysis/
+├── README.md
+├── docs/
+│   ├── project_overview.md
+│   ├── requirements.md
+│   ├── business_rules.md
+│   └── risks.md
+├── diagrams/
+│   ├── as_is.bpmn
+│   ├── to_be.bpmn
+│   ├── er_diagram.png
+│   └── subscription_states.png
+├── data/
+│   └── synthetic_traderbot_data.csv
+├── sql/
+│   ├── create_tables.sql
+│   └── analytical_queries.sql
+├── notebooks/
+│   └── traderbot_analysis.ipynb
+└── dashboard/
