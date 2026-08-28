@@ -70,9 +70,9 @@
 
 ## 8. BPMN-диаграмма
 
-![AS-IS BPMN](traderbot-subscription-analysis/diagrams/as-is.png)
+![AS-IS BPMN](../diagrams/as_is.png)
 
-Исходный BPMN-файл: [as-is.bpmn](traderbot-subscription-analysis/diagrams/as-is.bpmn)
+Исходный BPMN-файл: [as_is.bpmn](../diagrams/as_is.bpmn)
 
 > **Примечание по нотации:** диаграмма используется как аналитическая BPMN 2.0-модель и не предназначена для исполнения в Camunda. Используемая комбинация Event-Based Gateway и Conditional Intermediate Catch Events допустима в BPMN 2.0, однако может не поддерживаться конкретными BPMN-движками, включая Camunda 8.
 
