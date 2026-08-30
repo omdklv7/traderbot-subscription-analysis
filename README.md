@@ -43,16 +43,16 @@
 - [x] подготовлен Project Overview;
 - [x] описан процесс AS-IS;
 - [x] построена BPMN-диаграмма AS-IS;
-- [ ] описать и смоделировать TO-BE;
-- [ ] провести анализ стейкхолдеров;
-- [ ] сформировать требования и бизнес-правила;
-- [ ] разработать аналитическую часть проекта.
+- [x] описан процесс TO-BE;
+- [x] построена BPMN-диаграмма TO-BE;
 
 ## Документация
 
 - [Project Overview](docs/project_overview.md)
 - [Процесс AS-IS](docs/as_is_process.md)
+- [Процесс TO-BE](docs/to_be_process.md)
 
 ## Диаграммы
 
 - [BPMN AS-IS](diagrams/as_is.bpmn)
+- [BPMN TO-BE](docs/to_be_process.md)
