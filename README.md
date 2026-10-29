@@ -59,11 +59,17 @@
 
 ## Документация
 
-- [Project Overview](docs/project_overview.md)
+- [Обзор проекта](docs/project_overview.md)
 - [Процесс AS-IS](docs/as_is_process.md)
 - [Процесс TO-BE](docs/to_be_process.md)
+- [Анализ стейкхолдеров](docs/stakeholders.md)
+- [Требования](docs/requirements.md)
+- [Метрики и гипотезы](docs/metrics.md)
+- [Модель данных](docs/data_model.md)
 
 ## Диаграммы
 
 - [BPMN AS-IS](diagrams/as_is.bpmn)
-- [BPMN TO-BE](docs/to_be_process.md)
+- [BPMN TO-BE](diagrams/to_be.bpmn)
+- [ER-диаграмма](diagrams/erd.png)
+
