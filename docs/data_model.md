@@ -28,8 +28,6 @@
 
 ![ER-диаграмма TraderBot](../diagrams/erd.png)
 
-[Исходник диаграммы Mermaid](../diagrams/erd.mmd)
-
 ---
 
 ## 2. Описание таблиц
