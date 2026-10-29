@@ -69,7 +69,7 @@
 
 ## Диаграммы
 
-- [BPMN AS-IS](diagrams/as_is.bpmn)
-- [BPMN TO-BE](diagrams/to_be.bpmn)
+- [BPMN AS-IS](diagrams/as_is.png)
+- [BPMN TO-BE](diagrams/to_be.png)
 - [ER-диаграмма](diagrams/erd.png)
 
