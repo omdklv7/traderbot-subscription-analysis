@@ -1,0 +1,95 @@
+erDiagram
+    %% TraderBot analytical data model v2.0, synthetic data only.
+    %% 10 tables. Technical connection history and brokerage accounts are out of scope.
+
+    USERS ||--o| SUBSCRIPTIONS : has
+    USERS ||--o{ LICENSE_PURCHASES : buys
+    SUBSCRIPTIONS ||--o{ PAYMENTS : receives
+    SUBSCRIPTIONS ||--o{ SUBSCRIPTION_PERIODS : contains
+    PAYMENTS ||--o| SUBSCRIPTION_PERIODS : funds
+    SUBSCRIPTIONS ||--o| ACTIVATIONS : initially_activates
+    SUBSCRIPTIONS ||--o{ SETTING_CHANGES : records
+    SUBSCRIPTIONS ||--o{ INCIDENT_IMPACTS : experiences
+    INCIDENTS ||--o{ INCIDENT_IMPACTS : affects
+    SUBSCRIPTIONS ||--o{ SUPPORT_TICKETS : handles
+
+    USERS {
+        bigint user_id PK
+        timestamptz registered_at
+        varchar initial_model
+        varchar signup_source
+        varchar auth_method
+    }
+
+    SUBSCRIPTIONS {
+        bigint subscription_id PK
+        bigint user_id FK,UK
+        timestamptz created_at
+    }
+
+    PAYMENTS {
+        bigint payment_id PK
+        bigint subscription_id FK
+        timestamptz initiated_at
+        timestamptz confirmed_at "nullable"
+        numeric amount_usd
+        varchar method
+        varchar status
+    }
+
+    SUBSCRIPTION_PERIODS {
+        bigint period_id PK
+        bigint subscription_id FK
+        bigint payment_id FK,UK
+        int period_no
+        timestamptz starts_at
+        timestamptz ends_at
+        timestamptz canceled_at "nullable"
+    }
+
+    ACTIVATIONS {
+        bigint activation_id PK
+        bigint subscription_id FK,UK
+        timestamptz requested_at
+        timestamptz completed_at "nullable"
+        varchar status
+    }
+
+    SETTING_CHANGES {
+        bigint change_id PK
+        bigint subscription_id FK
+        timestamptz changed_at
+        varchar risk_level
+        varchar trading_mode
+    }
+
+    INCIDENTS {
+        bigint incident_id PK
+        timestamptz started_at
+        timestamptz resolved_at "nullable"
+        varchar severity
+        varchar category
+    }
+
+    INCIDENT_IMPACTS {
+        bigint impact_id PK
+        bigint incident_id FK
+        bigint subscription_id FK
+        timestamptz affected_at
+        timestamptz restored_at "nullable"
+    }
+
+    SUPPORT_TICKETS {
+        bigint ticket_id PK
+        bigint subscription_id FK
+        timestamptz opened_at
+        timestamptz closed_at "nullable"
+        varchar category
+    }
+
+    LICENSE_PURCHASES {
+        bigint license_purchase_id PK
+        bigint user_id FK
+        timestamptz purchased_at
+        numeric amount_usd
+    }
