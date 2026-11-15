@@ -29,7 +29,7 @@ CREATE TABLE payments (
 	initiated_at timestamptz NOT NULL,
 	confirmed_at timestamptz,
 	amount_usd NUMERIC(10, 2) NOT NULL,
-	METHOD varchar(20) NOT NULL,
+	method varchar(20) NOT NULL,
 	status varchar(20) NOT NULL,
 	CONSTRAINT chk_payments_amount
     CHECK (amount_usd > 0),
