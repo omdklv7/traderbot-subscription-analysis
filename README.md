@@ -65,6 +65,7 @@
 - [Требования](docs/requirements.md)
 - [Метрики и гипотезы](docs/metrics.md)
 - [Модель данных](docs/data_model.md)
+- [Расчет метрик](sql/analytics/metrics.sql)
 
 ## Диаграммы
 
