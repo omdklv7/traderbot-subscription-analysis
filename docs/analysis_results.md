@@ -34,7 +34,7 @@
 
 | № | Метрика | Результат |
 |---:|---|---:|
-| 1 | 30-day Payment Conversion — подписка | **45,47%** |
+| 1 | 30-day Payment Conversion - подписка | **45,47%** |
 | 2 | Activation Within 24 Hours | **98,83%** (4 310 из 4 361) |
 | 3 | Activation Time — среднее | **79,54 мин** |
 | 3 | Activation Time — медиана | **24 мин** |
