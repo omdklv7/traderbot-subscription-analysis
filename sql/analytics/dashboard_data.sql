@@ -1,4 +1,3 @@
-
 -- ============================================================
 -- 1. BUSINESS OVERVIEW
 -- Ежемесячные регистрации, активные подписки, MRR и поступления.
@@ -99,7 +98,6 @@ LEFT JOIN license_receipts l
 ORDER BY month;
 
 
-
 -- ============================================================
 -- 2. CONVERSION & RETENTION
 -- Конверсия, продления, отток и реактивации по месяцам.
@@ -121,7 +119,6 @@ user_conversion AS (
             'month', timezone('UTC', u.registered_at)
         )::date AS month,
         u.initial_model,
-
         CASE
             WHEN u.initial_model = 'subscription'
              AND EXISTS (
@@ -135,7 +132,6 @@ user_conversion AS (
                   AND p.confirmed_at <
                       u.registered_at + INTERVAL '30 days'
             ) THEN 1
-
             WHEN u.initial_model = 'license'
              AND EXISTS (
                 SELECT 1
@@ -145,10 +141,8 @@ user_conversion AS (
                   AND lp.purchased_at <
                       u.registered_at + INTERVAL '30 days'
             ) THEN 1
-
             ELSE 0
         END AS converted
-
     FROM users u
     WHERE u.registered_at + INTERVAL '30 days'
           <= '2026-10-01 00:00:00+00'::timestamptz
@@ -160,19 +154,15 @@ conversion_stats AS (
         COUNT(*) FILTER (
             WHERE initial_model = 'subscription'
         ) AS subscription_users,
-
         SUM(converted) FILTER (
             WHERE initial_model = 'subscription'
         ) AS subscription_paid_30d,
-
         COUNT(*) FILTER (
             WHERE initial_model = 'license'
         ) AS license_users,
-
         SUM(converted) FILTER (
             WHERE initial_model = 'license'
         ) AS license_paid_30d
-
     FROM user_conversion
     GROUP BY month
 ),
@@ -183,15 +173,12 @@ period_events AS (
         DATE_TRUNC(
             'month', timezone('UTC', sp.ends_at)
         )::date AS month,
-
         sp.period_no,
         sp.ends_at,
         sp.canceled_at,
-
         next_sp.period_id AS next_period_id,
         next_sp.starts_at AS next_starts_at,
         p.confirmed_at AS next_payment_at,
-
         CASE
             WHEN sp.canceled_at IS NULL
              AND next_sp.starts_at = sp.ends_at
@@ -200,16 +187,12 @@ period_events AS (
                 THEN 1
             ELSE 0
         END AS renewed
-
     FROM subscription_periods sp
-
     LEFT JOIN subscription_periods next_sp
         ON sp.subscription_id = next_sp.subscription_id
        AND next_sp.period_no = sp.period_no + 1
-
     LEFT JOIN payments p
         ON next_sp.payment_id = p.payment_id
-
     WHERE sp.ends_at <=
         '2026-10-01 00:00:00+00'::timestamptz
 ),
@@ -217,19 +200,15 @@ period_events AS (
 renewal_stats AS (
     SELECT
         month,
-
         COUNT(*) FILTER (
             WHERE period_no = 1
         ) AS eligible_first_periods,
-
         COUNT(*) FILTER (
             WHERE period_no = 1 AND renewed = 1
         ) AS first_renewals,
-
         COUNT(*) AS eligible_periods,
         SUM(renewed) AS renewed_periods,
         COUNT(*) - SUM(renewed) AS churned_periods
-
     FROM period_events
     GROUP BY month
 ),
@@ -238,9 +217,7 @@ renewal_stats AS (
 reactivation_stats AS (
     SELECT
         month,
-
         COUNT(*) AS eligible_expired_periods,
-
         COUNT(*) FILTER (
             WHERE next_starts_at > ends_at
               AND next_starts_at <=
@@ -249,97 +226,305 @@ reactivation_stats AS (
               AND next_payment_at <=
                   ends_at + INTERVAL '30 days'
         ) AS reactivated_30d
-
     FROM period_events
-
     WHERE canceled_at IS NULL
       AND ends_at + INTERVAL '30 days' <=
           '2026-10-01 00:00:00+00'::timestamptz
-
       AND (
           next_period_id IS NULL
           OR next_starts_at > ends_at
       )
-
     GROUP BY month
 )
 
 SELECT
     m.month,
-
     COALESCE(c.subscription_users, 0)
         AS subscription_users,
-
     COALESCE(c.subscription_paid_30d, 0)
         AS subscription_paid_30d,
-
     ROUND(
         100.0 * c.subscription_paid_30d
         / NULLIF(c.subscription_users, 0), 2
     ) AS subscription_conversion_30d_pct,
-
     COALESCE(c.license_users, 0)
         AS license_users,
-
     COALESCE(c.license_paid_30d, 0)
         AS license_paid_30d,
-
     ROUND(
         100.0 * c.license_paid_30d
         / NULLIF(c.license_users, 0), 2
     ) AS license_conversion_30d_pct,
-
     COALESCE(r.eligible_first_periods, 0)
         AS eligible_first_periods,
-
     COALESCE(r.first_renewals, 0)
         AS first_renewals,
-
     ROUND(
         100.0 * r.first_renewals
         / NULLIF(r.eligible_first_periods, 0), 2
     ) AS first_renewal_rate_pct,
-
     COALESCE(r.eligible_periods, 0)
         AS eligible_periods,
-
     COALESCE(r.renewed_periods, 0)
         AS renewed_periods,
-
     COALESCE(r.churned_periods, 0)
         AS churned_periods,
-
     ROUND(
         100.0 * r.renewed_periods
         / NULLIF(r.eligible_periods, 0), 2
     ) AS renewal_rate_pct,
-
     ROUND(
         100.0 * r.churned_periods
         / NULLIF(r.eligible_periods, 0), 2
     ) AS churn_rate_pct,
-
     COALESCE(a.eligible_expired_periods, 0)
         AS eligible_expired_periods,
-
     COALESCE(a.reactivated_30d, 0)
         AS reactivated_30d,
-
     ROUND(
         100.0 * a.reactivated_30d
         / NULLIF(a.eligible_expired_periods, 0), 2
     ) AS reactivation_rate_30d_pct
-
 FROM months m
-
 LEFT JOIN conversion_stats c
     ON m.month = c.month
-
 LEFT JOIN renewal_stats r
     ON m.month = r.month
-
 LEFT JOIN reactivation_stats a
     ON m.month = a.month
-
 ORDER BY m.month;
 
+
+-- ============================================================
+-- 3. SERVICE QUALITY
+-- Активации, технические инциденты и восстановление сервиса.
+-- ============================================================
+
+WITH months AS (
+    SELECT
+        generate_series(
+            TIMESTAMP '2025-01-01',
+            TIMESTAMP '2026-09-01',
+            INTERVAL '1 month'
+        ) AS month_start
+),
+
+-- Доля успешных активаций за 24 часа
+activation_24h AS (
+    SELECT
+        DATE_TRUNC(
+            'month', timezone('UTC', requested_at)
+        )::date AS month,
+        COUNT(*) FILTER (
+            WHERE requested_at + INTERVAL '24 hours'
+                <= '2026-10-01 00:00:00+00'::timestamptz
+        ) AS eligible_activations,
+        COUNT(*) FILTER (
+            WHERE status = 'completed'
+              AND completed_at <=
+                  requested_at + INTERVAL '24 hours'
+              AND requested_at + INTERVAL '24 hours'
+                  <= '2026-10-01 00:00:00+00'::timestamptz
+        ) AS activations_within_24h
+    FROM activations
+    GROUP BY 1
+),
+
+-- Длительность завершённых активаций
+activation_durations AS (
+    SELECT
+        DATE_TRUNC(
+            'month', timezone('UTC', requested_at)
+        )::date AS month,
+        EXTRACT(
+            EPOCH FROM completed_at - requested_at
+        ) / 60.0 AS duration_minutes
+    FROM activations
+    WHERE status = 'completed'
+      AND completed_at <
+          '2026-10-01 00:00:00+00'::timestamptz
+),
+
+activation_times AS (
+    SELECT
+        month,
+        COUNT(*) AS completed_activations,
+        ROUND(
+            AVG(duration_minutes), 2
+        ) AS avg_activation_minutes,
+        ROUND(
+            PERCENTILE_CONT(0.5)
+            WITHIN GROUP (ORDER BY duration_minutes)::numeric,
+            2
+        ) AS median_activation_minutes,
+        ROUND(
+            PERCENTILE_CONT(0.9)
+            WITHIN GROUP (ORDER BY duration_minutes)::numeric,
+            2
+        ) AS p90_activation_minutes
+    FROM activation_durations
+    GROUP BY month
+),
+
+-- Активные оплаченные подписки на конец месяца
+active_subscriptions AS (
+    SELECT
+        m.month_start::date AS month,
+        COUNT(DISTINCT sp.subscription_id)
+            AS active_paid_subscriptions
+    FROM months m
+    LEFT JOIN subscription_periods sp
+        ON sp.starts_at <
+            timezone(
+                'UTC',
+                m.month_start + INTERVAL '1 month'
+            )
+       AND COALESCE(sp.canceled_at, sp.ends_at) >=
+            timezone(
+                'UTC',
+                m.month_start + INTERVAL '1 month'
+            )
+    GROUP BY m.month_start
+),
+
+-- Инциденты по месяцу возникновения
+incident_stats AS (
+    SELECT
+        DATE_TRUNC(
+            'month', timezone('UTC', started_at)
+        )::date AS month,
+
+        COUNT(*) AS incidents_started
+    FROM incidents
+    WHERE started_at <
+        '2026-10-01 00:00:00+00'::timestamptz
+    GROUP BY 1
+),
+
+-- Воздействия инцидентов на подписки
+-- Пересечение интервала воздействия с календарным месяцем
+impact_stats AS (
+    SELECT
+        m.month_start::date AS month,
+        COUNT(DISTINCT ii.subscription_id)
+            AS affected_subscriptions,
+        COUNT(*) AS impact_events
+    FROM months m
+    JOIN incident_impacts ii
+        ON ii.affected_at <
+            timezone(
+                'UTC',
+                m.month_start + INTERVAL '1 month'
+            )
+       AND COALESCE(
+            ii.restored_at,
+            '2026-10-01 00:00:00+00'::timestamptz
+        ) > timezone('UTC', m.month_start)
+
+    GROUP BY m.month_start
+),
+
+-- Длительность восстановления по месяцу начала инцидента
+recovery_durations AS (
+    SELECT
+        DATE_TRUNC(
+            'month', timezone('UTC', i.started_at)
+        )::date AS month,
+
+        EXTRACT(
+            EPOCH FROM ii.restored_at - ii.affected_at
+        ) / 60.0 AS recovery_minutes
+    FROM incident_impacts ii
+    JOIN incidents i
+        ON ii.incident_id = i.incident_id
+    WHERE ii.restored_at IS NOT NULL
+      AND ii.restored_at <
+          '2026-10-01 00:00:00+00'::timestamptz
+),
+
+recovery_stats AS (
+    SELECT
+        month,
+        COUNT(*) AS recovered_impacts,
+        ROUND(
+            AVG(recovery_minutes), 2
+        ) AS avg_recovery_minutes,
+        ROUND(
+            PERCENTILE_CONT(0.5)
+            WITHIN GROUP (ORDER BY recovery_minutes)::numeric,
+            2
+        ) AS median_recovery_minutes,
+        ROUND(
+            PERCENTILE_CONT(0.9)
+            WITHIN GROUP (ORDER BY recovery_minutes)::numeric,
+            2
+        ) AS p90_recovery_minutes
+    FROM recovery_durations
+    GROUP BY month
+),
+
+-- Обращения в поддержку по месяцу открытия
+support_stats AS (
+    SELECT
+        DATE_TRUNC(
+            'month', timezone('UTC', opened_at)
+        )::date AS month,
+        COUNT(*) AS support_tickets_opened
+    FROM support_tickets
+    WHERE opened_at <
+        '2026-10-01 00:00:00+00'::timestamptz
+    GROUP BY 1
+)
+
+SELECT
+
+    m.month_start::date AS month,
+    COALESCE(a.eligible_activations, 0)
+        AS eligible_activations,
+    COALESCE(a.activations_within_24h, 0)
+        AS activations_within_24h,
+    ROUND(
+        100.0 * a.activations_within_24h
+        / NULLIF(a.eligible_activations, 0),
+        2
+    ) AS activation_24h_pct,
+    COALESCE(at.completed_activations, 0)
+        AS completed_activations,
+    at.avg_activation_minutes,
+    at.median_activation_minutes,
+    at.p90_activation_minutes,
+    COALESCE(i.incidents_started, 0)
+        AS incidents_started,
+    COALESCE(im.affected_subscriptions, 0)
+        AS affected_subscriptions,
+    COALESCE(im.impact_events, 0)
+        AS impact_events,
+    ac.active_paid_subscriptions,
+    ROUND(
+        100.0 * COALESCE(im.impact_events, 0)
+        / NULLIF(ac.active_paid_subscriptions, 0),
+        2
+    ) AS impacts_per_100_active,
+    COALESCE(r.recovered_impacts, 0)
+        AS recovered_impacts,
+    r.avg_recovery_minutes,
+    r.median_recovery_minutes,
+    r.p90_recovery_minutes,
+    COALESCE(s.support_tickets_opened, 0)
+        AS support_tickets_opened
+FROM months m
+LEFT JOIN activation_24h a
+    ON m.month_start::date = a.month
+LEFT JOIN activation_times at
+    ON m.month_start::date = at.month
+LEFT JOIN incident_stats i
+    ON m.month_start::date = i.month
+LEFT JOIN impact_stats im
+    ON m.month_start::date = im.month
+LEFT JOIN active_subscriptions ac
+    ON m.month_start::date = ac.month
+LEFT JOIN recovery_stats r
+    ON m.month_start::date = r.month
+LEFT JOIN support_stats s
+    ON m.month_start::date = s.month
+ORDER BY m.month_start;
